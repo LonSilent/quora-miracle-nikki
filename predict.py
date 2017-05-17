@@ -20,20 +20,23 @@ def normalize(x):
 
     return (a * x) / (a * x + b * (1 - x))
 
+def is_nan_or_inf(x):
+    return (not np.isfinite(x)) or np.isnan(x)
+
 if __name__ == '__main__':
     base = './data/'
     offline_test = False
     method_set = ['LR', 'RF', 'GBDT', 'ADA', 'XGB']
-    method = method_set[2]
+    method = method_set[4]
 
     train_path = base + 'train_features.pickle'
     test_path = base + 'test_features.pickle'
 
     use_vsm = True
     use_magic = True
-    use_abhishek = False
     use_fuzzy = True
     use_d2v = False
+    use_deep = True
 
     if use_vsm:
         train_vsm = base + 'train_vsm.pickle'
@@ -51,11 +54,10 @@ if __name__ == '__main__':
         train_fuzzy = base + 'train_fuzzy.pickle'
         test_fuzzy = base + 'test_fuzzy.pickle'
 
-    # if use_abhishek:
-    #     train_abhishek = base + 'abhishek_train.csv'
-    #     test_abhishek = base + 'abhishek_test.csv'
-    #     use_cols = ['len_q1','len_q2','diff_len','len_char_q1','len_char_q2','len_word_q1','len_word_q2','common_words']
-        # use_cols.extend(['fuzz_qratio', 'fuzz_WRatio', 'fuzz_partial_ratio','fuzz_partial_token_set_ratio', 'fuzz_partial_token_sort_ratio','fuzz_token_set_ratio', 'fuzz_token_sort_ratio'])
+    if use_deep:
+        train_deep = base + 'train_deep.pickle'
+        test_deep = base + 'test_deep.pickle'
+
 
     print("Loading files...")
     with open(train_path, 'rb') as f:
@@ -89,34 +91,18 @@ if __name__ == '__main__':
         with open(test_d2v, 'rb') as f:
             test_d2v_data = pickle.load(f)
 
-    if use_abhishek:
-        train_abhishek_data = []
-        with open(train_abhishek) as f:
-            reader = csv.reader(f, use_cols)
-            for line in reader:
-                instance = []
-                print(line)
-                for key, value in line.items():
-                    if key in use_cols:
-                        instance.append(float(value))
-                train_abhishek_data.append(line)
-        test_abhishek_data = []
-        with open(test_abhishek) as f:
-            reader = csv.DictReader(f, use_cols)
-            for line in reader:
-                instance = []
-                for key, value in line.items():
-                    if key in use_cols:
-                        instance.append(float(value))
-                test_abhishek_data.append(line)
-
     if use_fuzzy:
-        train_fuzzy_data = []
         with open(train_fuzzy, 'rb') as f:
             train_fuzzy_data = pickle.load(f)
-        test_fuzzy_data = []
         with open(test_fuzzy, 'rb') as f:
             test_fuzzy_data = pickle.load(f)
+
+    if use_deep:
+        with open(train_deep, 'rb') as f:
+            train_deep_data = pickle.load(f)
+        with open(test_deep, 'rb') as f:
+            test_deep_data = pickle.load(f)
+        deep_use_index = [0, 1, 2]
 
     print("Initialize features...")
 
@@ -130,10 +116,6 @@ if __name__ == '__main__':
     allow_features.extend(['trigram_match', 'trigram_match_ratio', 'trigram_difference'])
     # allow_features.extend(['is_same_type'])
 
-    # allow_features = ['keyword_match', 'word_difference','keyword_match_ratio']
-    # allow_features.extend(['bigram_match'])
-    # allow_features.extend(['trigram_match'])
-    # allow_features.extend(['is_same_type'])
 
     allow_index = [y for x,y in feature_dict.items() if x in allow_features]
 
@@ -148,10 +130,18 @@ if __name__ == '__main__':
             instance['features'].extend(train_magic_data[i])
         if use_d2v:
             instance['features'].append(train_d2v_data[i])
-        if use_abhishek:
-            instance['features'].extend(train_abhishek_data[i])
         if use_fuzzy:
-            instance['features'].extend(train_fuzzy_data[i])
+            instance['features'].extend(train_fuzzy_data[i][:-1])
+        if use_deep:
+            # if not is_nan_or_inf(train_deep_data[i][0]):
+            #     train_deep_data[i][0] = 10
+            # if not is_nan_or_inf(train_deep_data[i][1]):
+            #     train_deep_data[i][1] = 10
+            for j in range(len(train_deep_data[i])):
+                if is_nan_or_inf(train_deep_data[i][j]):
+                    train_deep_data[i][j] = 1000
+            train_deep_data[i] = [y for x,y in enumerate(train_deep_data[i]) if x in deep_use_index]
+            instance['features'].extend(train_deep_data[i])
         train_features.append(instance['features'])
         labels.append(instance['is_duplicate'])
 
@@ -168,10 +158,18 @@ if __name__ == '__main__':
             instance['features'].extend(test_magic_data[i])
         if use_d2v:
             instance['features'].append(test_d2v_data[i])
-        if use_abhishek:
-            instance['features'].extend(test_abhishek_data[i])
         if use_fuzzy:
-            instance['features'].extend(test_fuzzy_data[i])
+            instance['features'].extend(test_fuzzy_data[i][:-1])
+        if use_deep:
+            # if not np.isfinite(test_deep_data[i][0]):
+            #     test_deep_data[i][0] = 10.0
+            # if not np.isfinite(test_deep_data[i][1]):
+            #     test_deep_data[i][1] = 10.0
+            for j in range(len(test_deep_data[i])):
+                if is_nan_or_inf(test_deep_data[i][j]):
+                    test_deep_data[i][j] = 1000
+            test_deep_data[i] = [y for x,y in enumerate(test_deep_data[i]) if x in deep_use_index]
+            instance['features'].extend(test_deep_data[i])
     test_features = np.array(test_features)
 
     print("Initialize {} model...".format(method))
@@ -188,7 +186,7 @@ if __name__ == '__main__':
         model = AdaBoostClassifier(n_estimators=100)
         submit_path = 'submit_ada.csv'
     elif method == 'XGB':
-        model = xgboost.XGBClassifier(n_estimators=1000)
+        model = xgboost.XGBClassifier(n_estimators=1700, nthread=18)
         submit_path = 'submit_xgb.csv'
 
     # k-fold validation
