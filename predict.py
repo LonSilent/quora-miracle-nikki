@@ -1,6 +1,5 @@
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, ExtraTreesClassifier
-from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
 import xgboost
 import numpy as np
 import pickle
@@ -37,6 +36,7 @@ if __name__ == '__main__':
     use_fuzzy = True
     use_d2v = False
     use_deep = True
+    use_deep_bm25 = True
 
     if use_vsm:
         train_vsm = base + 'train_vsm.pickle'
@@ -57,6 +57,10 @@ if __name__ == '__main__':
     if use_deep:
         train_deep = base + 'train_deep.pickle'
         test_deep = base + 'test_deep.pickle'
+
+    if use_deep_bm25:
+        train_deep_bm25 = base + 'train_kenter.pickle'
+        test_deep_bm25 = base + 'test_kenter.pickle'
 
 
     print("Loading files...")
@@ -102,7 +106,14 @@ if __name__ == '__main__':
             train_deep_data = pickle.load(f)
         with open(test_deep, 'rb') as f:
             test_deep_data = pickle.load(f)
-        deep_use_index = [0, 1, 2]
+        # max = 8
+        deep_use_index = [0, 1, 2, 3, 6]
+
+    if use_deep_bm25:
+        with open(train_deep_bm25, 'rb') as f:
+            train_deep_bm25_data = pickle.load(f)
+        with open(test_deep_bm25, 'rb') as f:
+            test_deep_bm25_data = pickle.load(f)
 
     print("Initialize features...")
 
@@ -133,15 +144,13 @@ if __name__ == '__main__':
         if use_fuzzy:
             instance['features'].extend(train_fuzzy_data[i][:-1])
         if use_deep:
-            # if not is_nan_or_inf(train_deep_data[i][0]):
-            #     train_deep_data[i][0] = 10
-            # if not is_nan_or_inf(train_deep_data[i][1]):
-            #     train_deep_data[i][1] = 10
             for j in range(len(train_deep_data[i])):
                 if is_nan_or_inf(train_deep_data[i][j]):
                     train_deep_data[i][j] = 1000
             train_deep_data[i] = [y for x,y in enumerate(train_deep_data[i]) if x in deep_use_index]
             instance['features'].extend(train_deep_data[i])
+        if use_deep_bm25:
+            instance['features'].append(train_deep_bm25_data[i])
         train_features.append(instance['features'])
         labels.append(instance['is_duplicate'])
 
@@ -170,6 +179,8 @@ if __name__ == '__main__':
                     test_deep_data[i][j] = 1000
             test_deep_data[i] = [y for x,y in enumerate(test_deep_data[i]) if x in deep_use_index]
             instance['features'].extend(test_deep_data[i])
+        if use_deep_bm25:
+            instance['features'].append(test_deep_bm25_data[i])
     test_features = np.array(test_features)
 
     print("Initialize {} model...".format(method))
@@ -186,7 +197,7 @@ if __name__ == '__main__':
         model = AdaBoostClassifier(n_estimators=100)
         submit_path = 'submit_ada.csv'
     elif method == 'XGB':
-        model = xgboost.XGBClassifier(n_estimators=1700, nthread=18)
+        model = xgboost.XGBClassifier(n_estimators=2000, nthread=18, max_depth=5)
         submit_path = 'submit_xgb.csv'
 
     # k-fold validation
@@ -230,7 +241,7 @@ if __name__ == '__main__':
         f.write('test_id,is_duplicate\n')
         for i in range(len(test_data)):
             value = normalize(prob_result[i])
-            # print(value)
+            # value = prob_result[i]
             f.write(str(i) + ',' + str(value) + '\n')
 
     print("Finished {} task.".format(method))
