@@ -18,6 +18,7 @@ magic.py: questions' duplicated features
 d2v.py: Doc2Vec similarity (not improved)
 deep_feature.py: Word2Vec features
 bm25-word2vec.py: implementation of the paper [CIKM’15, Short Text Similarity with Word Embeddings]
+magic_v2.py: questions' hash intersection count
 ```
 Classification model:
 ```
