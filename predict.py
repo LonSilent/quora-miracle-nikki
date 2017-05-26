@@ -12,7 +12,7 @@ csv.field_size_limit(sys.maxsize)
 
 def normalize(x):
     train_p = 0.37
-    real_p = 0.165
+    real_p = 0.15
 
     a = real_p / train_p
     b = (1 - real_p) / (1 - train_p)
@@ -34,9 +34,10 @@ if __name__ == '__main__':
     use_vsm = True
     use_magic = True
     use_fuzzy = True
-    use_d2v = False
     use_deep = True
     use_deep_bm25 = True
+    use_lstm = False
+    use_magic_v2 = True
 
     if use_vsm:
         train_vsm = base + 'train_vsm.pickle'
@@ -45,10 +46,6 @@ if __name__ == '__main__':
     if use_magic:
         train_magic = base + 'train_magic.csv'
         test_magic = base + 'test_magic.csv'
-
-    if use_d2v:
-        train_d2v = base + 'train_d2v.pickle'
-        test_d2v = base + 'test_d2v.pickle'
 
     if use_fuzzy:
         train_fuzzy = base + 'train_fuzzy.pickle'
@@ -62,6 +59,13 @@ if __name__ == '__main__':
         train_deep_bm25 = base + 'train_kenter.pickle'
         test_deep_bm25 = base + 'test_kenter.pickle'
 
+    if use_lstm:
+        train_lstm = base + 'tune10_train.csv'
+        test_lstm = base + 'tune10.csv'
+
+    if use_magic_v2:
+        train_magic_v2 = base + 'train_magic_v2.csv'
+        test_magic_v2 = base + 'test_magic_v2.csv'
 
     print("Loading files...")
     with open(train_path, 'rb') as f:
@@ -89,12 +93,6 @@ if __name__ == '__main__':
                 line = [int(x) for x in line.strip().split(',')[1:]]
                 test_magic_data.append(line)
 
-    if use_d2v:
-        with open(train_d2v, 'rb') as f:
-            train_d2v_data = pickle.load(f)
-        with open(test_d2v, 'rb') as f:
-            test_d2v_data = pickle.load(f)
-
     if use_fuzzy:
         with open(train_fuzzy, 'rb') as f:
             train_fuzzy_data = pickle.load(f)
@@ -106,7 +104,6 @@ if __name__ == '__main__':
             train_deep_data = pickle.load(f)
         with open(test_deep, 'rb') as f:
             test_deep_data = pickle.load(f)
-        # max = 8
         deep_use_index = [0, 1, 2, 3, 6]
 
     if use_deep_bm25:
@@ -114,6 +111,34 @@ if __name__ == '__main__':
             train_deep_bm25_data = pickle.load(f)
         with open(test_deep_bm25, 'rb') as f:
             test_deep_bm25_data = pickle.load(f)
+
+    if use_lstm:
+        train_lstm_data = []
+        with open(train_lstm) as f:
+            next(f)
+            for line in f:
+                line = line.split(',')
+                train_lstm_data.append(float(line[0]))
+        test_lstm_data = []
+        with open(test_lstm) as f:
+            next(f)
+            for line in f:
+                line = line.split(',')
+                test_lstm_data.append(float(line[0]))
+
+    if use_magic_v2:
+        train_magic_v2_data = []
+        with open(train_magic_v2) as f:
+            next(f)
+            for line in f:
+                line = line.split(',')
+                train_magic_v2_data.append(int(line[1]))
+        test_magic_v2_data = []
+        with open(test_magic_v2) as f:
+            next(f)
+            for line in f:
+                line = line.split(',')
+                test_magic_v2_data.append(int(line[1]))
 
     print("Initialize features...")
 
@@ -125,8 +150,6 @@ if __name__ == '__main__':
     allow_features = ['noun_sub', 'verb_sub', 'keyword_match', 'word_difference', 'noun_share', 'verb_share', 'keyword_match_ratio']
     allow_features.extend(['bigram_match', 'bigram_match_ratio', 'bigram_difference'])
     allow_features.extend(['trigram_match', 'trigram_match_ratio', 'trigram_difference'])
-    # allow_features.extend(['is_same_type'])
-
 
     allow_index = [y for x,y in feature_dict.items() if x in allow_features]
 
@@ -139,8 +162,6 @@ if __name__ == '__main__':
             instance['features'].append(train_vsm_sim[i])
         if use_magic:
             instance['features'].extend(train_magic_data[i])
-        if use_d2v:
-            instance['features'].append(train_d2v_data[i])
         if use_fuzzy:
             instance['features'].extend(train_fuzzy_data[i][:-1])
         if use_deep:
@@ -151,6 +172,10 @@ if __name__ == '__main__':
             instance['features'].extend(train_deep_data[i])
         if use_deep_bm25:
             instance['features'].append(train_deep_bm25_data[i])
+        if use_lstm:
+            instance['features'].append(train_lstm_data[i])
+        if use_magic_v2:
+            instance['features'].append(train_magic_v2_data[i])
         train_features.append(instance['features'])
         labels.append(instance['is_duplicate'])
 
@@ -165,15 +190,9 @@ if __name__ == '__main__':
             instance['features'].append(test_vsm_sim[i])
         if use_magic:
             instance['features'].extend(test_magic_data[i])
-        if use_d2v:
-            instance['features'].append(test_d2v_data[i])
         if use_fuzzy:
             instance['features'].extend(test_fuzzy_data[i][:-1])
         if use_deep:
-            # if not np.isfinite(test_deep_data[i][0]):
-            #     test_deep_data[i][0] = 10.0
-            # if not np.isfinite(test_deep_data[i][1]):
-            #     test_deep_data[i][1] = 10.0
             for j in range(len(test_deep_data[i])):
                 if is_nan_or_inf(test_deep_data[i][j]):
                     test_deep_data[i][j] = 1000
@@ -181,6 +200,10 @@ if __name__ == '__main__':
             instance['features'].extend(test_deep_data[i])
         if use_deep_bm25:
             instance['features'].append(test_deep_bm25_data[i])
+        if use_lstm:
+            instance['features'].append(test_lstm_data[i])
+        if use_magic_v2:
+            instance['features'].append(test_magic_v2_data[i])
     test_features = np.array(test_features)
 
     print("Initialize {} model...".format(method))
@@ -197,7 +220,7 @@ if __name__ == '__main__':
         model = AdaBoostClassifier(n_estimators=100)
         submit_path = 'submit_ada.csv'
     elif method == 'XGB':
-        model = xgboost.XGBClassifier(n_estimators=2000, nthread=18, max_depth=5)
+        model = xgboost.XGBClassifier(n_estimators=2000, nthread=18, max_depth=4)
         submit_path = 'submit_xgb.csv'
 
     # k-fold validation
@@ -224,6 +247,7 @@ if __name__ == '__main__':
         sys.exit()
 
     model.fit(train_features, labels)
+    print('Feature importances:')
     print(model.feature_importances_)
     print("predicting...")
     prob_result = []
@@ -233,15 +257,11 @@ if __name__ == '__main__':
 
     prob_result = [x[1] for x in prob_result]
 
-    # MAX = max(prob_result)
-    # MIN = min(prob_result)
-
     print("Writing result...")
     with open(submit_path, 'w') as f:
         f.write('test_id,is_duplicate\n')
         for i in range(len(test_data)):
             value = normalize(prob_result[i])
-            # value = prob_result[i]
             f.write(str(i) + ',' + str(value) + '\n')
 
     print("Finished {} task.".format(method))

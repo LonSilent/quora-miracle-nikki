@@ -52,4 +52,6 @@ ABBR_DICT = {
     "hasn't":"has not",
     "hadn't":"had not",
     "won't":"will not",
+
+    "\'d":"had"
 }

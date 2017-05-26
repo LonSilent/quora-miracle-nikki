@@ -1,3 +1,5 @@
+# code from https://www.kaggle.com/jturkewitz/magic-features-0-03-gain/comments
+
 import numpy as np
 import pandas as pd
 import timeit
@@ -58,8 +60,8 @@ comb['q2_freq'] = comb['q2_hash'].map(lambda x: try_apply_dict(x,q1_vc) + try_ap
 train_comb = comb[comb['is_duplicate'] >= 0][['id','q1_hash','q2_hash','q1_freq','q2_freq','is_duplicate']]
 test_comb = comb[comb['is_duplicate'] < 0][['id','q1_hash','q2_hash','q1_freq','q2_freq']]
 corr_mat = train_comb.corr()
-train_comb.to_csv('train_magic.csv', columns=['q1_freq', 'q2_freq'])
-test_comb.to_csv('test_magic.csv', columns=['q1_freq', 'q2_freq'])
+train_comb.to_csv('./data/train_magic.csv', columns=['q1_freq', 'q2_freq'])
+test_comb.to_csv('./data/test_magic.csv', columns=['q1_freq', 'q2_freq'])
 # print(corr_mat)
 print(test_comb)
 #more frequenct questions are more likely to be duplicates

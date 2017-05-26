@@ -13,11 +13,8 @@ if __name__ == '__main__':
 
     result = []
     for i in range(len(data)):
-        # print(train[5])
         sentence_q1 = ' '.join(data[i]['question1'])
         sentence_q2 = ' '.join(data[i]['question2'])
-        # print(sentence_q1)
-        # print(sentence_q2)
 
         qratio = fuzzy.QRatio(sentence_q1, sentence_q2)
         wratio = fuzzy.WRatio(sentence_q1, sentence_q2)

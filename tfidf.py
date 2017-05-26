@@ -2,6 +2,7 @@ from collections import defaultdict, Counter
 import pickle
 import itertools
 from math import log10, sqrt
+import sys
 
 def get_tf(tokens):
     return dict(Counter(tokens))
@@ -49,11 +50,12 @@ def norm(v):
     return sqrt(sum(i**2 for i in v)) 
 
 if __name__ == '__main__':
-    train_file = 'train.pickle'
-    test_file = 'test.pickle'
+    base = './data/'
+    train_file = base + 'train.pickle'
+    test_file = base + 'test.pickle'
 
-    # outfile = 'train_vsm.pickle'
-    outfile = 'test_vsm.pickle'
+    # outfile = base + 'train_vsm.pickle'
+    outfile = base + 'test_vsm.pickle'
 
     print("Loading files...")
     with open(train_file, 'rb') as f:
@@ -89,6 +91,9 @@ if __name__ == '__main__':
             count_tokens += count
         avg_len += count_tokens
     avg_len /= corpus_count
+
+    # print(avg_len)
+    # sys.exit()
 
     result = []
     print('Calculate Cosine...')
