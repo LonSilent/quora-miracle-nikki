@@ -26,7 +26,7 @@ def verb_list(tokens):
 
 if __name__ == '__main__':
     base = './data/'
-    is_train = False
+    is_train = True
     if is_train:
         file_path = base + 'train.csv'
         output_path = base + 'train.pickle'
@@ -36,29 +36,27 @@ if __name__ == '__main__':
         output_path = base + 'test.pickle'
         result_path = base + 'test_features.pickle'
 
-    # train = []
-    # stop = set(stopwords.words('english'))
-    # lemmatizer = WordNetLemmatizer()
+    train = []
+    stop = set(stopwords.words('english'))
+    lemmatizer = WordNetLemmatizer()
 
     start_time = timeit.default_timer()
 
-    # with open(file_path) as f:
-    #     columns = f.readline().strip().replace('\"','').split(',')
-    #     reader = csv.reader(f)
-    #     for row in reader:
-    #         train_item = {}
-    #         for i, item in enumerate(row):
-    #             for key, value in ABBR_DICT.items():
-    #                 train_item[columns[i]] = row[i].lower().replace(key, value)
-    #             # train_item[columns[i]] = row[i].lower()
-    #         # print(train_item)
-    #         train.append(train_item)
+    with open(file_path) as f:
+        columns = f.readline().strip().replace('\"','').split(',')
+        reader = csv.reader(f)
+        for row in reader:
+            train_item = {}
+            for i, item in enumerate(row):
+                for key, value in ABBR_DICT.items():
+                    train_item[columns[i]] = row[i].lower().replace(key, value)
+            train.append(train_item)
 
-    # for item in train:
-    #     item['question1'] = [lemmatizer.lemmatize(x.lower()) for x in nltk.word_tokenize(item['question1']) if x not in symbol]
-    #     item['question2'] = [lemmatizer.lemmatize(x.lower()) for x in nltk.word_tokenize(item['question2']) if x not in symbol]
-    # with open(output_path, 'wb') as f:
-    #     pickle.dump(train, f)
+    for item in train:
+        item['question1'] = [lemmatizer.lemmatize(x.lower()) for x in nltk.word_tokenize(item['question1']) if x not in symbol]
+        item['question2'] = [lemmatizer.lemmatize(x.lower()) for x in nltk.word_tokenize(item['question2']) if x not in symbol]
+    with open(output_path, 'wb') as f:
+        pickle.dump(train, f)
 
     # sys.exit()
 

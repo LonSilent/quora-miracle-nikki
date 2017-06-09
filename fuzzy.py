@@ -26,6 +26,7 @@ if __name__ == '__main__':
         token_sort_ratio = fuzzy.token_sort_ratio(sentence_q1, sentence_q2)
 
         fuzzyee = [qratio, wratio, ratio, partial_ratio, partial_token_sort_ratio, token_set_ratio, token_sort_ratio]
+        fuzzyee.append(partial_token_set_ratio)
 
         result.append(fuzzyee)
         print('{}/{}'.format(i, len(data)), end='\r')

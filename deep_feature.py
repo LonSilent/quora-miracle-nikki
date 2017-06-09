@@ -25,21 +25,35 @@ def sent2vec(sentence, model):
     return vec / np.sqrt((vec**2).sum())
 
 if __name__ == '__main__':
+    # model_type = 'deep'
+    # model_type = 'glove'
+    model_type = 'fasttext'
+
     train_path = './data/train.pickle'
     test_path = './data/test.pickle'
-    model_path = '/tmp2/bschang/GoogleNews-vectors-negative300.bin.gz'
+
+    if model_type == 'deep': 
+        model_path = '/tmp2/bschang/GoogleNews-vectors-negative300.bin.gz'
+    elif model_type == 'glove':
+        model_path = '/tmp2/bschang/glove-word2vec.txt'
+    elif model_type == 'fasttext':
+        model_path = '/tmp2/bschang/fasttext-word2vec.txt'
     
-    # data_path = train_path
-    # output_path = './data/train_deep.pickle'
-    data_path = test_path
-    output_path = './data/test_deep.pickle'
+    data_path = train_path
+    output_path = './data/train_{}.pickle'.format(model_type)
+
+    # data_path = test_path
+    # output_path = './data/test_{}.pickle'.format(model_type)
 
     print('Loading pickle...')
     with open(data_path, 'rb') as f:
         data = pickle.load(f)
 
     print('Loading word2vec file...')
-    model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
+    if model_type == 'deep': 
+        model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
+    else:
+        model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=False)
 
     print('Calculate wmd...')
     wmd_list = []
@@ -49,7 +63,10 @@ if __name__ == '__main__':
         wmd_list.append(wmd(q1, q2, model))
 
     print('Loading normalize word2vec file...')
-    norm_model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
+    if model_type == 'deep': 
+        norm_model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
+    else:
+        norm_model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=False)
     norm_model.init_sims(replace=True)
     
     print('Calculate normalize wmd...')
@@ -95,7 +112,7 @@ if __name__ == '__main__':
         
         dist_features = [cosine_dist, cityblock_dist, jaccard_dist, canberra_dist, euclidean_dist, minkowski_dist, braycurtis_dist]
         result[i].extend(dist_features)
-        print('{}/{}'.format(i, len(data)), end='\r')
+        # print('{}/{}'.format(i, len(data)), end='\r')
 
     with open(output_path, 'wb') as f:
         pickle.dump(result, f)
